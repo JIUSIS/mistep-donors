@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'">
+  <title>MiStep · 捐赠名单管理</title>
+  <link rel="icon" href="./mistep.png">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./editor.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-content">
+      <a class="brand" href="./"><img src="./mistep.png" alt="" width="32" height="32">MiStep</a>
+      <a class="source-link" href="https://github.com/JIUSIS/mistep-donors" target="_blank" rel="noopener noreferrer">
+        <svg aria-hidden="true"><use href="./icons.svg#git-branch"></use></svg>名单仓库
+      </a>
+    </div>
+  </header>
+  <main>
+    <div class="heading">
+      <h1>捐赠名单管理</h1>
+      <div class="actions">
+        <button type="button" id="reload" class="icon-button" title="重新读取名单" aria-label="重新读取名单">
+          <svg aria-hidden="true"><use href="./icons.svg#refresh-cw"></use></svg>
+        </button>
+        <button type="button" id="publish" class="primary" disabled>
+          <svg aria-hidden="true"><use href="./icons.svg#upload"></use></svg>发布名单
+        </button>
+      </div>
+    </div>
+    <div class="status" id="status" data-kind="pending" role="status">
+      <span class="status-dot"></span><span id="status-text">正在读取名单</span>
+    </div>
+    <div class="columns">
+      <section aria-labelledby="editor-title">
+        <div class="section-head">
+          <h2 id="editor-title">名单</h2><span id="count" class="muted">0 人</span>
+        </div>
+        <form class="add-form" id="add-form">
+          <label class="sr-only" for="new-name">新昵称</label>
+          <input id="new-name" type="text" autocomplete="off" placeholder="输入昵称" disabled>
+          <button id="add" type="submit" disabled>
+            <svg aria-hidden="true"><use href="./icons.svg#plus"></use></svg>添加
+          </button>
+        </form>
+        <p id="edit-error" class="error-line" role="alert" hidden></p>
+        <div id="names-empty" class="empty-list">暂无昵称</div>
+        <ol id="names" class="names"></ol>
+        <template id="name-row">
+          <li>
+            <span class="row-number"></span>
+            <input type="text" autocomplete="off" spellcheck="false">
+            <div class="row-actions">
+              <button type="button" class="icon-button" data-action="up" title="上移">
+                <svg aria-hidden="true"><use href="./icons.svg#chevron-up"></use></svg>
+              </button>
+              <button type="button" class="icon-button" data-action="down" title="下移">
+                <svg aria-hidden="true"><use href="./icons.svg#chevron-down"></use></svg>
+              </button>
+              <button type="button" class="icon-button remove" data-action="remove" title="删除">
+                <svg aria-hidden="true"><use href="./icons.svg#trash-2"></use></svg>
+              </button>
+            </div>
+          </li>
+        </template>
+      </section>
+      <section class="preview" aria-labelledby="preview-title">
+        <div class="section-head">
+          <h2 id="preview-title">预览</h2>
+          <a href="../donors.json" target="_blank" rel="noopener noreferrer">公开 JSON</a>
+        </div>
+        <div class="preview-content">
+          <h3>捐赠致谢</h3>
+          <ul id="preview-names"></ul>
+          <p id="preview-empty" class="muted">暂无公开名单</p>
+        </div>
+      </section>
+    </div>
+  </main>
+  <dialog id="authorization" aria-labelledby="authorization-title">
+    <form id="publish-form" autocomplete="off">
+      <div class="dialog-head">
+        <h2 id="authorization-title">发布授权</h2>
+        <button id="close-auth" class="icon-button" type="button" title="关闭" aria-label="关闭">
+          <svg aria-hidden="true"><use href="./icons.svg#x"></use></svg>
+        </button>
+      </div>
+      <label for="token">GitHub 细粒度 Token</label>
+      <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
+      <p class="auth-note">在 GitHub 选择仅授权 <code>mistep-donors</code>，将 <strong>Contents</strong> 设为 <strong>Read and write</strong>。</p>
+      <a class="token-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">在 GitHub 创建 Token</a>
+      <p id="auth-error" class="error-line" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="submit" id="confirm-publish" class="primary">
+          <svg aria-hidden="true"><use href="./icons.svg#upload"></use></svg>授权并发布
+        </button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
