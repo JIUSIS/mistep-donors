@@ -12,6 +12,8 @@ const ui = {
   count: byId("count"), preview: byId("preview-names"), previewEmpty: byId("preview-empty"),
   error: byId("edit-error"), dialog: byId("authorization"), token: byId("token"),
   confirm: byId("confirm-publish"), close: byId("close-auth"), authError: byId("auth-error"),
+  githubEdit: byId("github-edit"), publishJson: byId("publish-json"), copyStatus: byId("copy-status"),
+  tokenOption: byId("token-option"),
 };
 
 let rows = [];
@@ -72,9 +74,7 @@ function refreshControls() {
   ui.add.disabled = !editable || !ui.newName.value.trim();
   ui.empty.hidden = rows.length > 0;
   ui.count.textContent = `${rows.length} 人`;
-  ui.rows.querySelectorAll("input, button").forEach((control) => {
-    control.disabled = !editable || control.dataset.atBoundary === "true";
-  });
+  ui.rows.querySelectorAll("input, button").forEach((control) => { control.disabled = !editable; });
   const visible = names.filter(validName);
   const items = visible.map((name) => {
     const item = document.createElement("li");
@@ -88,35 +88,25 @@ function refreshControls() {
 
 function renderRows() {
   const fragment = document.createDocumentFragment();
-  rows.forEach((row, index) => {
+  rows.forEach((row) => {
     const node = ui.template.content.firstElementChild.cloneNode(true);
     const input = node.querySelector("input");
-    const position = index + 1;
-    node.querySelector(".row-number").textContent = String(position).padStart(2, "0");
     input.value = row.value;
-    input.setAttribute("aria-label", `昵称 ${position}`);
+    input.setAttribute("aria-label", "昵称");
     input.addEventListener("input", () => {
       row.value = input.value;
       input.setAttribute("aria-invalid", String(!validName(row.value.trim())));
       showError(ui.error);
       refreshControls();
     });
-    const actions = [["up", "上移", index === 0], ["down", "下移", index === rows.length - 1],
-      ["remove", "删除", false]];
-    for (const [action, label, atBoundary] of actions) {
-      const button = node.querySelector(`[data-action="${action}"]`);
-      button.setAttribute("aria-label", `${label}第 ${position} 项`);
-      button.dataset.atBoundary = String(atBoundary);
-      button.addEventListener("click", () => {
-        const next = action === "up" ? index - 1 : index + 1;
-        if (action === "remove") rows.splice(index, 1);
-        else [rows[index], rows[next]] = [rows[next], rows[index]];
-        showError(ui.error);
-        renderRows();
-        const focusIndex = action === "remove" ? Math.min(index, rows.length - 1) : next;
-        (ui.rows.children[focusIndex]?.querySelector("input") ?? ui.newName).focus();
-      });
-    }
+    const remove = node.querySelector('[data-action="remove"]');
+    remove.setAttribute("aria-label", "删除昵称");
+    remove.addEventListener("click", () => {
+      rows.splice(rows.indexOf(row), 1);
+      showError(ui.error);
+      renderRows();
+      ui.newName.focus();
+    });
     fragment.append(node);
   });
   ui.rows.replaceChildren(fragment);
@@ -205,6 +195,10 @@ async function load() {
   }
 }
 
+function donorDocument(names) {
+  return `${JSON.stringify({ donors: names }, null, 2)}\n`;
+}
+
 function publishError(code) {
   if (code === 401 || code === 403) return "GitHub 拒绝授权，请检查 Token 有效期和 Contents 写入权限。";
   if (code === 409 || code === 422) return "GitHub 未接受发布。请核对名单是否已在其他地方更新，再重新读取。";
@@ -214,7 +208,7 @@ function publishError(code) {
 async function publish() {
   if (busy || !blob || !token) return;
   const names = currentNames();
-  const bytes = new TextEncoder().encode(`${JSON.stringify({ donors: names }, null, 2)}\n`);
+  const bytes = new TextEncoder().encode(donorDocument(names));
   const invalid = names.findIndex((name) => !validName(name));
   if (invalid !== -1 || names.length > maxNames || bytes.length > maxBytes) {
     status("error", "请检查昵称长度和名单大小。");
@@ -281,15 +275,39 @@ ui.publish.addEventListener("click", () => {
   if (!hasDraft()) return;
   const invalid = currentNames().findIndex((name) => !validName(name));
   if (invalid !== -1) {
-    showError(ui.error, `第 ${invalid + 1} 项昵称无效。`);
+    showError(ui.error, "有昵称无效，请检查后再发布。");
     ui.rows.children[invalid].querySelector("input").focus();
+    return;
+  }
+  const document = donorDocument(currentNames());
+  if (new TextEncoder().encode(document).length > maxBytes) {
+    showError(ui.error, "名单文件超出大小限制。");
     return;
   }
   if (token) void publish();
   else {
+    ui.publishJson.value = document;
+    ui.publishJson.hidden = true;
+    ui.copyStatus.hidden = true;
+    ui.tokenOption.open = false;
     showError(ui.authError);
     ui.dialog.showModal();
-    ui.token.focus();
+    ui.githubEdit.focus();
+  }
+});
+ui.githubEdit.addEventListener("click", async (event) => {
+  if (busy) {
+    event.preventDefault();
+    return;
+  }
+  ui.copyStatus.hidden = false;
+  try {
+    await navigator.clipboard.writeText(ui.publishJson.value);
+    ui.copyStatus.textContent = "已复制，粘贴后在 GitHub 提交即可。";
+  } catch {
+    ui.copyStatus.textContent = "自动复制失败，请手动复制下方名单。";
+    ui.publishJson.hidden = false;
+    ui.publishJson.select();
   }
 });
 byId("publish-form").addEventListener("submit", (event) => {

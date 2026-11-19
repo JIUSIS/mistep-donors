@@ -7,8 +7,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'">
   <title>MiStep · 捐赠名单管理</title>
   <link rel="icon" href="./mistep.png">
-  <link rel="stylesheet" href="./style.css">
-  <script src="./editor.js" defer></script>
+  <link rel="stylesheet" href="./style.css?v=2">
+  <script src="./editor.js?v=2" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -48,18 +48,11 @@
         </form>
         <p id="edit-error" class="error-line" role="alert" hidden></p>
         <div id="names-empty" class="empty-list">暂无昵称</div>
-        <ol id="names" class="names"></ol>
+        <ul id="names" class="names"></ul>
         <template id="name-row">
           <li>
-            <span class="row-number"></span>
             <input type="text" autocomplete="off" spellcheck="false">
             <div class="row-actions">
-              <button type="button" class="icon-button" data-action="up" title="上移">
-                <svg aria-hidden="true"><use href="./icons.svg#chevron-up"></use></svg>
-              </button>
-              <button type="button" class="icon-button" data-action="down" title="下移">
-                <svg aria-hidden="true"><use href="./icons.svg#chevron-down"></use></svg>
-              </button>
               <button type="button" class="icon-button remove" data-action="remove" title="删除">
                 <svg aria-hidden="true"><use href="./icons.svg#trash-2"></use></svg>
               </button>
@@ -73,7 +66,10 @@
           <a href="../donors.json" target="_blank" rel="noopener noreferrer">公开 JSON</a>
         </div>
         <div class="preview-content">
-          <h3>捐赠致谢</h3>
+          <div class="preview-head">
+            <h3>捐赠致谢</h3>
+            <span class="muted">排名不分先后</span>
+          </div>
           <ul id="preview-names"></ul>
           <p id="preview-empty" class="muted">暂无公开名单</p>
         </div>
@@ -81,24 +77,31 @@
     </div>
   </main>
   <dialog id="authorization" aria-labelledby="authorization-title">
-    <form id="publish-form" autocomplete="off">
-      <div class="dialog-head">
-        <h2 id="authorization-title">发布授权</h2>
-        <button id="close-auth" class="icon-button" type="button" title="关闭" aria-label="关闭">
-          <svg aria-hidden="true"><use href="./icons.svg#x"></use></svg>
-        </button>
-      </div>
-      <label for="token">GitHub 细粒度 Token</label>
-      <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
-      <p class="auth-note">在 GitHub 选择仅授权 <code>mistep-donors</code>，将 <strong>Contents</strong> 设为 <strong>Read and write</strong>。</p>
-      <a class="token-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">在 GitHub 创建 Token</a>
-      <p id="auth-error" class="error-line" role="alert" hidden></p>
-      <div class="dialog-actions">
-        <button type="submit" id="confirm-publish" class="primary">
-          <svg aria-hidden="true"><use href="./icons.svg#upload"></use></svg>授权并发布
-        </button>
-      </div>
-    </form>
+    <div class="dialog-head">
+      <h2 id="authorization-title">发布名单</h2>
+      <button id="close-auth" class="icon-button" type="button" title="关闭" aria-label="关闭">
+        <svg aria-hidden="true"><use href="./icons.svg#x"></use></svg>
+      </button>
+    </div>
+    <p class="auth-note">用已登录的 GitHub 账号打开编辑页，将复制的名单替换进文件，再点「提交更改」。</p>
+    <p id="copy-status" class="auth-note" role="status" hidden></p>
+    <textarea id="publish-json" class="publish-json" rows="5" aria-label="待发布的名单 JSON" readonly hidden></textarea>
+    <a id="github-edit" class="button primary" href="https://github.com/JIUSIS/mistep-donors/edit/main/donors.json" target="_blank" rel="noopener noreferrer">复制名单并打开 GitHub</a>
+    <details id="token-option">
+      <summary>使用 Token 直接发布</summary>
+      <form id="publish-form" autocomplete="off">
+        <label for="token">GitHub 细粒度 Token</label>
+        <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
+        <p class="auth-note">请仅设置 <code>mistep-donors</code> 的 <strong>Contents</strong> 读写权限。MiStep App 匿名读取公开名单。</p>
+        <a class="token-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">在 GitHub 创建 Token</a>
+        <p id="auth-error" class="error-line" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="submit" id="confirm-publish" class="primary">
+            <svg aria-hidden="true"><use href="./icons.svg#upload"></use></svg>授权并发布
+          </button>
+        </div>
+      </form>
+    </details>
   </dialog>
 </body>
 </html>
